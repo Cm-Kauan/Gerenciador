@@ -85,11 +85,13 @@ plataformas), mas seguem documentados aqui para quando chegar a hora.
 1. Crie uma conta em [railway.app](https://railway.app) e conecte sua conta do GitHub
 2. "New Project" → "Deploy from GitHub repo" → selecione este repositório
 3. Configure o **root directory** do serviço para `backend/` (Railway detecta o `pom.xml` e builda automaticamente com Nixpacks)
-4. No mesmo projeto, clique em "New" → "Database" → "Add PostgreSQL"
-5. No serviço do backend, vá em "Variables" e adicione (usando os valores gerados pelo plugin do Postgres, disponíveis na aba "Variables" do serviço Postgres):
-   - `DATABASE_URL` → normalmente algo como `jdbc:postgresql://<host>:<port>/<database>`
-   - `DB_USERNAME` → usuário do Postgres gerado pelo Railway
-   - `DB_PASSWORD` → senha gerada pelo Railway
+4. No mesmo projeto, clique em "New" → "Database" → "Add PostgreSQL" (isso cria um serviço separado, geralmente chamado `Postgres`, com suas próprias variáveis: `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`)
+5. No serviço do **backend** (não no Postgres), vá em "Variables" e crie estas três variáveis, usando a sintaxe de referência do Railway (`${{NomeDoServico.VARIAVEL}}`) para puxar os valores do serviço Postgres automaticamente — troque `Postgres` pelo nome exato que aparece no seu projeto, se for diferente:
+   - `JDBC_DATABASE_URL` = `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}`
+   - `DB_USERNAME` = `${{Postgres.PGUSER}}`
+   - `DB_PASSWORD` = `${{Postgres.PGPASSWORD}}`
+
+   > Não use a variável `DATABASE_URL` que o Railway gera automaticamente no serviço Postgres — ela vem no formato `postgres://usuario:senha@host:porta/banco`, e o driver JDBC do Spring Boot exige o formato `jdbc:postgresql://host:porta/banco`. Por isso criamos `JDBC_DATABASE_URL` como uma variável própria, já no formato certo.
 6. O Railway vai expor uma URL pública tipo `https://tasksync-backend.up.railway.app` — guarde essa URL
 
 ### 2. Frontend na Vercel
