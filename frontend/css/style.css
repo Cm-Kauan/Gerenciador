@@ -55,6 +55,59 @@ pre {
     word-break: break-word;
 }
 
+label {
+    display: block;
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+}
+
+input {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.5rem;
+    border: 1px solid #d0d3d9;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+form button {
+    margin-top: 1rem;
+}
+
+.tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.tab-btn {
+    background: #eef0f4;
+    color: #1c1e21;
+}
+
+.tab-btn.active {
+    background-color: #2f6feb;
+    color: #fff;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+#logout-btn {
+    background-color: #6c7280;
+    margin-left: 0.5rem;
+}
+
+#logout-btn:hover {
+    background-color: #565a66;
+}
+
 @media (max-width: 480px) {
     .container {
         padding: 1.25rem 1rem;

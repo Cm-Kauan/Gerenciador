@@ -49,6 +49,31 @@ curl http://localhost:8080/api/health
 
 Deve retornar `{"status":"ok","service":"tasksync-backend"}`.
 
+### Autenticação (Fase 1)
+
+O backend já tem cadastro/login com JWT. Endpoints disponíveis:
+
+| Método | Rota                | Autenticação | Descrição                                   |
+|--------|----------------------|--------------|-----------------------------------------------|
+| POST   | `/api/auth/register`| Não          | Cria uma conta (`name`, `email`, `password`) |
+| POST   | `/api/auth/login`   | Não          | Autentica e retorna um token JWT             |
+| GET    | `/api/me`            | Sim (Bearer) | Retorna o e-mail do usuário logado           |
+
+Exemplo local:
+
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Kauan","email":"kauan@teste.com","password":"senha123"}'
+
+# copie o "token" da resposta acima
+curl http://localhost:8080/api/me -H "Authorization: Bearer <TOKEN>"
+```
+
+Qualquer outra rota (fora `/api/auth/**`, `/api/health` e `/h2-console/**`) exige
+o header `Authorization: Bearer <token>` — é assim que as próximas fases (tarefas,
+workspaces etc.) vão saber de qual usuário se trata.
+
 ### Frontend
 
 É um site estático simples. Basta servir a pasta `frontend/` com qualquer
@@ -63,13 +88,17 @@ Depois abra `http://localhost:5500` no navegador e clique em
 "Testar conexão com o backend" — se aparecer o JSON de status, front e back
 estão se comunicando corretamente (e o CORS está configurado certo).
 
+Na mesma página agora tem abas de **Entrar** / **Criar conta**: crie uma conta,
+depois clique em "Consultar /api/me" para ver o token JWT sendo usado de fato
+para acessar uma rota protegida.
+
 > Se você usar outra porta ou o Live Server do VS Code, a URL de origem já está
 > liberada no `CorsConfig.java` (`http://localhost:*`).
 
 ## Roadmap de fases
 
 - [x] **Fase 0 — Fundação**: esqueleto do projeto, backend e frontend conversando via API, infraestrutura documentada
-- [ ] **Fase 1 — Autenticação**: cadastro/login de usuários (Spring Security + JWT)
+- [x] **Fase 1 — Autenticação**: cadastro/login de usuários (Spring Security + JWT)
 - [ ] **Fase 2 — CRUD de Tarefas**: criação, edição, conclusão, exclusão, subtarefas e prioridade (Alta/Média/Baixa)
 - [ ] **Fase 3 — Workspaces e Tags**: alternância Pessoal/Profissional e etiquetas personalizadas
 - [ ] **Fase 4 — Agenda e Calendário**: visão "Hoje / Esta Semana / Atrasados" e calendário interativo
@@ -92,7 +121,8 @@ plataformas), mas seguem documentados aqui para quando chegar a hora.
    - `DB_PASSWORD` = `${{Postgres.PGPASSWORD}}`
 
    > Não use a variável `DATABASE_URL` que o Railway gera automaticamente no serviço Postgres — ela vem no formato `postgres://usuario:senha@host:porta/banco`, e o driver JDBC do Spring Boot exige o formato `jdbc:postgresql://host:porta/banco`. Por isso criamos `JDBC_DATABASE_URL` como uma variável própria, já no formato certo.
-6. O Railway vai expor uma URL pública tipo `https://tasksync-backend.up.railway.app` — guarde essa URL
+6. Ainda nas "Variables" do backend, crie também `JWT_SECRET` com uma string aleatória em base64 — gere a sua localmente com `openssl rand -base64 32` e cole o resultado. Essa chave assina os tokens JWT; nunca reutilize a chave de desenvolvimento (`application-dev.properties`) em produção.
+7. O Railway vai expor uma URL pública tipo `https://tasksync-backend.up.railway.app` — guarde essa URL
 
 ### 2. Frontend na Vercel
 
