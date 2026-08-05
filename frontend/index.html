@@ -1,70 +1,391 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TaskSync</title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskSync</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'DM Sans', sans-serif; }
+    .glass { background: rgba(255,255,255,0.72); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
+    .priority-alta { border-left: 4px solid #ef4444; }
+    .priority-media { border-left: 4px solid #f59e0b; }
+    .priority-baixa { border-left: 4px solid #22c55e; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .slide-in { animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+    .task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    .task-card { transition: all 0.2s ease; }
+    .ws-btn.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+    .nav-item.active { background: rgba(99,102,241,0.1); color: #6366f1; font-weight: 600; }
+    .tag-pill { font-size: 11px; padding: 2px 8px; border-radius: 99px; }
+    input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 2px rgba(99,102,241,0.3); }
+    .modal-overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
+    .metric-card { transition: transform 0.2s; }
+    .metric-card:hover { transform: scale(1.03); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .cal-day:hover { background: rgba(99,102,241,0.08); }
+    .cal-day.selected { background: rgba(99,102,241,0.15); font-weight: 700; }
+    .cal-day.today { box-shadow: inset 0 0 0 2px #6366f1; border-radius: 8px; }
+    .cal-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .pro-card { background: linear-gradient(135deg, #f8fafc, #eef2ff); border: 1px solid #e2e8f0; transition: all 0.2s; }
+    .pro-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(99,102,241,0.1); }
+    .goal-progress { transition: width 0.5s ease; }
+    .fin-tab.active { background: linear-gradient(135deg, #10b981, #059669); color: white; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+    .fin-card { background: linear-gradient(135deg, #ffffff, #f0fdf4); border: 1px solid #e2e8f0; transition: all 0.2s; border-radius: 16px; }
+    .fin-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16,185,129,0.1); }
+    .fin-toast { animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards; }
+    @keyframes toastIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes toastOut { from{opacity:1} to{opacity:0} }
+  </style>
 </head>
-<body>
-    <main class="container">
-        <h1>TaskSync</h1>
-        <p class="subtitle">Plataforma de gestão de tarefas pessoais e profissionais.</p>
-
-        <section class="card">
-            <h2>Status do backend</h2>
-            <button id="check-health-btn">Testar conexão com o backend</button>
-            <pre id="health-result">Clique no botão para testar.</pre>
+<body class="w-full min-h-screen" style="background: linear-gradient(135deg, rgb(240, 244, 255), rgb(232, 236, 248));">
+  <div class="flex flex-col h-screen" style="height: calc(100 * min(var(--vh, 1vh), 1vh))">
+    <header class="w-full px-4 md:px-6 py-3 glass border-b border-white/20 flex items-center justify-between gap-3 z-30 relative" style="background: rgba(255, 255, 255, 0.72);">
+      <div class="flex items-center gap-3">
+        <h1 class="font-bold text-xl tracking-tight" style="color: rgb(30, 41, 59);">TaskSync</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="relative hidden sm:block">
+          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+          <input id="search-input" type="text" placeholder="Buscar tarefas..." class="pl-9 pr-3 py-2 text-sm rounded-lg bg-white/80 border border-slate-200 w-48 lg:w-64" oninput="handleSearch()">
+        </div>
+        <button onclick="openModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-all hover:shadow-lg" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+          <i data-lucide="plus" class="w-4 h-4"></i><span class="hidden sm:inline">Nova Tarefa</span>
+        </button>
+      </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+      <nav class="hidden md:flex flex-col w-56 p-4 gap-1 border-r border-slate-100 bg-white/50">
+        <button class="nav-item active flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left w-full" onclick="setView('tarefas')" id="nav-tarefas"><i data-lucide="check-square" class="w-4 h-4"></i> Tarefas</button>
+        <button class="nav-item flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left w-full text-slate-600" onclick="setView('agenda')" id="nav-agenda"><i data-lucide="calendar" class="w-4 h-4"></i> Agenda</button>
+        <button class="nav-item flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left w-full text-slate-600" onclick="setView('profissional')" id="nav-profissional"><i data-lucide="briefcase" class="w-4 h-4"></i> Profissional</button>
+        <button class="nav-item flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left w-full text-slate-600" onclick="setView('metas')" id="nav-metas"><i data-lucide="target" class="w-4 h-4"></i> Metas</button>
+        <button class="nav-item flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left w-full text-slate-600" onclick="setView('dashboard')" id="nav-dashboard"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard</button>
+        <button class="nav-item flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left w-full text-slate-600" onclick="setView('financas')" id="nav-financas"><i data-lucide="wallet" class="w-4 h-4"></i> Finanças</button>
+        <div class="mt-6 px-3">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Workspace</p>
+          <div class="flex flex-col gap-1">
+            <button id="ws-pessoal" class="ws-btn active px-3 py-1.5 rounded-md text-sm font-medium transition-all text-left" onclick="setWorkspace('pessoal')">🟡 Pessoal</button>
+            <button id="ws-profissional" class="ws-btn px-3 py-1.5 rounded-md text-sm font-medium transition-all text-left" onclick="setWorkspace('profissional')">🔵 Profissional</button>
+          </div>
+        </div>
+        <div class="mt-4 px-3">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Filtros</p>
+          <div id="priority-filters" class="flex flex-col gap-1">
+            <button class="filter-btn text-left text-sm px-2 py-1 rounded hover:bg-slate-100 flex items-center gap-2" onclick="togglePriorityFilter('alta')"><span class="w-2 h-2 rounded-full bg-red-500"></span>Alta</button>
+            <button class="filter-btn text-left text-sm px-2 py-1 rounded hover:bg-slate-100 flex items-center gap-2" onclick="togglePriorityFilter('media')"><span class="w-2 h-2 rounded-full bg-amber-500"></span>Média</button>
+            <button class="filter-btn text-left text-sm px-2 py-1 rounded hover:bg-slate-100 flex items-center gap-2" onclick="togglePriorityFilter('baixa')"><span class="w-2 h-2 rounded-full bg-green-500"></span>Baixa</button>
+          </div>
+        </div>
+        <div class="mt-4 px-3">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tags</p>
+          <div id="tag-filters" class="flex flex-wrap gap-1"></div>
+        </div>
+      </nav>
+      <main class="flex-1 overflow-y-auto p-4 md:p-6">
+        <!-- Tasks View -->
+        <section id="view-tarefas" class="fade-in">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-lg" style="color: rgb(30, 41, 59);">Minhas Tarefas</h2><span id="task-count" class="text-sm text-slate-500"></span>
+          </div>
+          <div id="task-list" class="grid gap-3"></div>
+          <div id="empty-state" class="hidden text-center py-16">
+            <i data-lucide="inbox" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
+            <p class="text-slate-400">Nenhuma tarefa encontrada. Crie uma nova!</p>
+          </div>
         </section>
-
-        <section class="card" id="auth-section">
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="login-tab">Entrar</button>
-                <button class="tab-btn" data-tab="register-tab">Criar conta</button>
+        <!-- Agenda View -->
+        <section id="view-agenda" class="fade-in hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-lg" style="color: rgb(30, 41, 59);">Agenda</h2>
+            <div class="flex items-center gap-2">
+              <button onclick="calPrev()" class="p-1.5 rounded-lg hover:bg-slate-100"><i data-lucide="chevron-left" class="w-5 h-5 text-slate-600"></i></button>
+              <span id="cal-month-label" class="text-sm font-semibold text-slate-700 min-w-[140px] text-center"></span>
+              <button onclick="calNext()" class="p-1.5 rounded-lg hover:bg-slate-100"><i data-lucide="chevron-right" class="w-5 h-5 text-slate-600"></i></button>
             </div>
-
-            <form id="login-tab" class="tab-content active">
-                <h2>Entrar</h2>
-                <label>
-                    E-mail
-                    <input type="email" id="login-email" required>
-                </label>
-                <label>
-                    Senha
-                    <input type="password" id="login-password" required>
-                </label>
-                <button type="submit">Entrar</button>
-            </form>
-
-            <form id="register-tab" class="tab-content">
-                <h2>Criar conta</h2>
-                <label>
-                    Nome
-                    <input type="text" id="register-name" required>
-                </label>
-                <label>
-                    E-mail
-                    <input type="email" id="register-email" required>
-                </label>
-                <label>
-                    Senha (mínimo 6 caracteres)
-                    <input type="password" id="register-password" minlength="6" required>
-                </label>
-                <button type="submit">Criar conta</button>
-            </form>
-
-            <pre id="auth-result">Faça login ou crie uma conta.</pre>
+          </div>
+          <div class="glass rounded-xl p-4 mb-4">
+            <div class="grid grid-cols-7 gap-1 mb-2" id="cal-header"></div>
+            <div class="grid grid-cols-7 gap-1" id="cal-grid"></div>
+          </div>
+          <div id="cal-day-tasks" class="grid gap-3"></div>
         </section>
-
-        <section class="card">
-            <h2>Área logada</h2>
-            <p id="logged-user-info">Você ainda não está logado.</p>
-            <button id="check-me-btn">Consultar /api/me</button>
-            <button id="logout-btn">Sair</button>
-            <pre id="me-result"></pre>
+        <!-- Profissional View -->
+        <section id="view-profissional" class="fade-in hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-lg" style="color: rgb(30, 41, 59);">Workspace Profissional</h2><span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">Business</span>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div class="pro-card rounded-xl p-4 text-center"><p class="text-2xl font-bold text-blue-600" id="pro-projects">3</p><p class="text-xs text-slate-500 mt-1">Projetos Ativos</p></div>
+            <div class="pro-card rounded-xl p-4 text-center"><p class="text-2xl font-bold text-indigo-600" id="pro-team">5</p><p class="text-xs text-slate-500 mt-1">Membros</p></div>
+            <div class="pro-card rounded-xl p-4 text-center"><p class="text-2xl font-bold text-amber-600" id="pro-deadlines">4</p><p class="text-xs text-slate-500 mt-1">Prazos Próximos</p></div>
+            <div class="pro-card rounded-xl p-4 text-center"><p class="text-2xl font-bold text-green-600" id="pro-completed">12</p><p class="text-xs text-slate-500 mt-1">Concluídas</p></div>
+          </div>
+          <div class="mb-6">
+            <p class="text-sm font-semibold text-slate-700 mb-3">Projetos</p>
+            <div id="pro-project-list" class="grid gap-3 md:grid-cols-2 lg:grid-cols-3"></div>
+          </div>
+          <div class="mb-6">
+            <p class="text-sm font-semibold text-slate-700 mb-3">Equipe</p>
+            <div id="pro-team-list" class="flex flex-wrap gap-3"></div>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-slate-700 mb-3">Tarefas do Workspace Profissional</p>
+            <div id="pro-tasks" class="grid gap-3"></div>
+          </div>
         </section>
-    </main>
+        <!-- Metas View -->
+        <section id="view-metas" class="fade-in hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-lg" style="color: rgb(30, 41, 59);">Metas &amp; Objetivos</h2>
+            <button onclick="openGoalModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-all hover:shadow-lg" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)"><i data-lucide="plus" class="w-4 h-4"></i> Nova Meta</button>
+          </div>
+          <div id="goals-list" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3"></div>
+          <div id="goals-empty" class="hidden text-center py-16">
+            <i data-lucide="target" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
+            <p class="text-slate-400 text-sm">Nenhuma meta cadastrada ainda.</p>
+          </div>
+        </section>
+        <!-- Dashboard View -->
+        <section id="view-dashboard" class="fade-in hidden">
+          <h2 class="font-semibold text-lg mb-4" style="color: rgb(30, 41, 59);">Dashboard</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div class="metric-card glass rounded-xl p-4 text-center"><p class="text-2xl font-bold text-indigo-600" id="metric-total">0</p><p class="text-xs text-slate-500 mt-1">Total</p></div>
+            <div class="metric-card glass rounded-xl p-4 text-center"><p class="text-2xl font-bold text-green-600" id="metric-done">0</p><p class="text-xs text-slate-500 mt-1">Concluídas</p></div>
+            <div class="metric-card glass rounded-xl p-4 text-center"><p class="text-2xl font-bold text-amber-600" id="metric-pending">0</p><p class="text-xs text-slate-500 mt-1">Pendentes</p></div>
+            <div class="metric-card glass rounded-xl p-4 text-center"><p class="text-2xl font-bold text-red-600" id="metric-overdue">0</p><p class="text-xs text-slate-500 mt-1">Atrasadas</p></div>
+          </div>
+          <div class="glass rounded-xl p-4">
+            <p class="text-sm font-semibold text-slate-700 mb-3">Progresso Geral</p>
+            <div class="w-full bg-slate-200 rounded-full h-3">
+              <div id="progress-bar" class="h-3 rounded-full transition-all duration-500" style="width:0%;background:linear-gradient(90deg,#6366f1,#8b5cf6)"></div>
+            </div>
+            <p id="progress-text" class="text-xs text-slate-500 mt-2">0% concluído</p>
+          </div>
+        </section>
+        <!-- Finanças View -->
+        <section id="view-financas" class="fade-in hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-lg" style="color: rgb(30, 41, 59);">Finanças</h2>
+            <button onclick="finExport()" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-all hover:shadow-lg" style="background:linear-gradient(135deg,#10b981,#059669)"><i data-lucide="download" class="w-4 h-4"></i> Exportar PDF</button>
+          </div>
+          <div class="flex gap-2 mb-5">
+            <button class="fin-tab active px-4 py-2 rounded-lg text-sm font-medium transition-all" onclick="setFinTab('resumo')">Resumo</button>
+            <button class="fin-tab px-4 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200 text-slate-600 transition-all" onclick="setFinTab('lancamentos')">Lançamentos</button>
+            <button class="fin-tab px-4 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200 text-slate-600 transition-all" onclick="setFinTab('investimentos')">Investimentos</button>
+            <button class="fin-tab px-4 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200 text-slate-600 transition-all" onclick="setFinTab('parcelamento')">Parcelamento</button>
+          </div>
+          <div id="fin-resumo" class="fade-in">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              <div class="fin-card p-4 text-center"><p class="text-xs text-slate-500 mb-1">Renda Total</p><p id="fin-income" class="text-xl font-bold text-emerald-600">R$ 0</p></div>
+              <div class="fin-card p-4 text-center"><p class="text-xs text-slate-500 mb-1">Saídas</p><p id="fin-expenses" class="text-xl font-bold text-red-500">R$ 0</p></div>
+              <div class="fin-card p-4 text-center"><p class="text-xs text-slate-500 mb-1">Cartão Crédito</p><p id="fin-credit" class="text-xl font-bold text-orange-500">R$ 0</p></div>
+              <div class="fin-card p-4 text-center"><p class="text-xs text-slate-500 mb-1">Saldo</p><p id="fin-balance" class="text-xl font-bold text-indigo-600">R$ 0</p></div>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div class="glass rounded-xl p-4">
+                <p class="text-sm font-semibold text-slate-700 mb-3">Despesas por Categoria</p>
+                <canvas id="chart-donut" width="220" height="220" class="mx-auto"></canvas>
+                <div id="donut-legend" class="flex flex-wrap gap-2 mt-3 justify-center text-xs"></div>
+              </div>
+              <div class="glass rounded-xl p-4">
+                <p class="text-sm font-semibold text-slate-700 mb-3">Entradas vs Saídas</p>
+                <canvas id="chart-bar" width="280" height="200" class="mx-auto"></canvas>
+              </div>
+              <div class="glass rounded-xl p-4">
+                <p class="text-sm font-semibold text-slate-700 mb-3">Evolução do Saldo</p>
+                <canvas id="chart-line" width="280" height="200" class="mx-auto"></canvas>
+              </div>
+            </div>
+          </div>
+          <div id="fin-lancamentos" class="fade-in hidden">
+            <div class="glass rounded-xl p-4 mb-4">
+              <div class="flex flex-wrap gap-2 mb-3">
+                <select id="fin-filter-month" class="text-sm rounded-lg border border-slate-200 px-3 py-1.5" onchange="renderTransactions()">
+                  <option value="">Todos os meses</option>
+                  <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                </select>
+                <select id="fin-filter-type" class="text-sm rounded-lg border border-slate-200 px-3 py-1.5" onchange="renderTransactions()">
+                  <option value="">Todos tipos</option><option value="entrada">Entrada</option><option value="saida">Saída</option><option value="cartao">Cartão Crédito</option>
+                </select>
+                <select id="fin-filter-payment" class="text-sm rounded-lg border border-slate-200 px-3 py-1.5" onchange="renderTransactions()">
+                  <option value="">Todas formas</option><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="cartao_credito">Cartão Crédito</option><option value="cartao_debito">Débito</option><option value="boleto">Boleto</option><option value="transferencia">Transferência</option>
+                </select>
+              </div>
+              <button onclick="openFinModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-all hover:shadow-lg" style="background:linear-gradient(135deg,#10b981,#059669)"><i data-lucide="plus" class="w-4 h-4"></i> Novo Lançamento</button>
+            </div>
+            <div id="fin-transactions" class="grid gap-2"></div>
+          </div>
+          <div id="fin-investimentos" class="fade-in hidden">
+            <div class="grid md:grid-cols-2 gap-4 mb-6">
+              <div class="glass rounded-xl p-4">
+                <p class="text-sm font-semibold text-slate-700 mb-3">Investimentos vs. Aplicações</p>
+                <canvas id="chart-investment" width="240" height="180" class="mx-auto"></canvas>
+              </div>
+              <div class="glass rounded-xl p-4">
+                <p class="text-sm font-semibold text-slate-700 mb-3">Evolução de Investimentos</p>
+                <canvas id="chart-investment-line" width="240" height="180" class="mx-auto"></canvas>
+              </div>
+            </div>
+            <div class="glass rounded-xl p-4 mb-4 overflow-x-auto">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-semibold text-slate-700">Portfólio de Investimentos</p>
+                <button onclick="openInvestmentModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-all hover:shadow-lg" style="background:linear-gradient(135deg,#10b981,#059669)"><i data-lucide="plus" class="w-4 h-4"></i> Novo</button>
+              </div>
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-slate-200">
+                    <th class="text-left px-3 py-2 font-semibold text-slate-700">Ativo</th>
+                    <th class="text-left px-3 py-2 font-semibold text-slate-700">Tipo</th>
+                    <th class="text-right px-3 py-2 font-semibold text-slate-700">Valor Aplicado</th>
+                    <th class="text-right px-3 py-2 font-semibold text-slate-700">Valor Atual</th>
+                    <th class="text-right px-3 py-2 font-semibold text-slate-700">Variação</th>
+                    <th class="text-center px-3 py-2 font-semibold text-slate-700">Mês</th>
+                    <th class="text-center px-3 py-2 font-semibold text-slate-700">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="investment-table-body"></tbody>
+              </table>
+            </div>
+            <div class="glass rounded-xl p-4">
+              <p class="text-sm font-semibold text-slate-700 mb-3">Resumo de Investimentos</p>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="text-center p-2"><p class="text-xs text-slate-500 mb-1">Total Aplicado</p><p id="inv-total-applied" class="text-lg font-bold text-indigo-600">R$ 0</p></div>
+                <div class="text-center p-2"><p class="text-xs text-slate-500 mb-1">Valor Atual</p><p id="inv-total-current" class="text-lg font-bold text-emerald-600">R$ 0</p></div>
+                <div class="text-center p-2"><p class="text-xs text-slate-500 mb-1">Ganho/Perda</p><p id="inv-total-gain" class="text-lg font-bold text-amber-600">R$ 0</p></div>
+                <div class="text-center p-2"><p class="text-xs text-slate-500 mb-1">Rentabilidade</p><p id="inv-total-return" class="text-lg font-bold text-purple-600">0%</p></div>
+              </div>
+            </div>
+          </div>
+          <div id="fin-parcelamento" class="fade-in hidden">
+            <div class="glass rounded-xl p-5 mb-4">
+              <p class="text-sm font-semibold text-slate-700 mb-3">Simular Parcelamento</p>
+              <form id="installment-form" class="grid sm:grid-cols-4 gap-3" onsubmit="generateInstallments(event)">
+                <div><label class="text-xs text-slate-500" for="inst-desc">Descrição</label><input id="inst-desc" type="text" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm" placeholder="Ex: Notebook"></div>
+                <div><label class="text-xs text-slate-500" for="inst-total">Valor Total</label><input id="inst-total" type="number" step="0.01" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm" placeholder="3000"></div>
+                <div><label class="text-xs text-slate-500" for="inst-parcelas">Parcelas</label><input id="inst-parcelas" type="number" min="2" max="48" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm" placeholder="12"></div>
+                <div class="flex items-end"><button type="submit" class="w-full py-2 rounded-lg text-white text-sm font-medium" style="background:linear-gradient(135deg,#10b981,#059669)">Gerar</button></div>
+              </form>
+            </div>
+            <div id="installment-timeline" class="grid gap-2"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
 
-    <script src="js/app.js"></script>
+  <!-- Task Modal -->
+  <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-4" onclick="if(event.target===this)closeModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 fade-in" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="modal-title" class="font-semibold text-lg">Nova Tarefa</h3><button onclick="closeModal()" class="p-1 rounded-lg hover:bg-slate-100"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="task-form" class="grid gap-3" onsubmit="handleSubmit(event)">
+        <input type="hidden" id="edit-id">
+        <div><label for="f-title" class="text-sm font-medium text-slate-700">Título</label><input id="f-title" type="text" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        <div><label for="f-desc" class="text-sm font-medium text-slate-700">Descrição</label><textarea id="f-desc" rows="2" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></textarea></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label for="f-priority" class="text-sm font-medium text-slate-700">Prioridade</label>
+            <select id="f-priority" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm">
+              <option value="alta">🔴 Alta</option><option value="media" selected>🟡 Média</option><option value="baixa">🟢 Baixa</option>
+            </select>
+          </div>
+          <div><label for="f-due" class="text-sm font-medium text-slate-700">Prazo</label><input id="f-due" type="date" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        </div>
+        <div><label for="f-tags" class="text-sm font-medium text-slate-700">Tags (separadas por vírgula)</label><input id="f-tags" type="text" placeholder="#Finanças, #Projeto-X" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        <div><label for="f-subtasks" class="text-sm font-medium text-slate-700">Subtarefas (uma por linha)</label><textarea id="f-subtasks" rows="2" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></textarea></div>
+        <button id="form-submit-btn" type="submit" class="w-full py-2.5 rounded-lg text-white font-medium text-sm transition-all hover:shadow-lg mt-2" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">Criar Tarefa</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Goal Modal -->
+  <div id="goal-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-4" onclick="if(event.target===this)closeGoalModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 fade-in" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-lg">Nova Meta</h3><button onclick="closeGoalModal()" class="p-1 rounded-lg hover:bg-slate-100"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="goal-form" class="grid gap-3" onsubmit="handleGoalSubmit(event)">
+        <div><label for="g-title" class="text-sm font-medium text-slate-700">Objetivo</label><input id="g-title" type="text" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm" placeholder="Ex: Ler 12 livros este ano"></div>
+        <div><label for="g-target" class="text-sm font-medium text-slate-700">Meta (número)</label><input id="g-target" type="number" min="1" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm" placeholder="12"></div>
+        <div><label for="g-tags" class="text-sm font-medium text-slate-700">Categoria</label><input id="g-tags" type="text" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm" placeholder="Leitura, Idiomas, Estudos..."></div>
+        <button type="submit" class="w-full py-2.5 rounded-lg text-white font-medium text-sm transition-all hover:shadow-lg mt-2" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">Criar Meta</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Finance Modal -->
+  <div id="fin-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-4" onclick="if(event.target===this)closeFinModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 fade-in" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-lg">Novo Lançamento</h3><button onclick="closeFinModal()" class="p-1 rounded-lg hover:bg-slate-100"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="fin-form" class="grid gap-3" onsubmit="handleFinSubmit(event)">
+        <div><label for="fin-f-desc" class="text-sm font-medium text-slate-700">Descrição</label><input id="fin-f-desc" type="text" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label for="fin-f-amount" class="text-sm font-medium text-slate-700">Valor (R$)</label><input id="fin-f-amount" type="number" step="0.01" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+          <div><label for="fin-f-type" class="text-sm font-medium text-slate-700">Tipo</label>
+            <select id="fin-f-type" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm">
+              <option value="entrada">Entrada</option><option value="saida">Saída</option><option value="cartao">Cartão Crédito</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label for="fin-f-payment" class="text-sm font-medium text-slate-700">Forma Pgto</label>
+            <select id="fin-f-payment" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm">
+              <option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="cartao_credito">Cartão Crédito</option><option value="cartao_debito">Débito</option><option value="boleto">Boleto</option><option value="transferencia">Transferência</option>
+            </select>
+          </div>
+          <div><label for="fin-f-month" class="text-sm font-medium text-slate-700">Mês Ref.</label><input id="fin-f-month" type="month" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        </div>
+        <div><label for="fin-f-category" class="text-sm font-medium text-slate-700">Categoria</label><input id="fin-f-category" type="text" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm" placeholder="Alimentação, Transporte..."></div>
+        <button type="submit" class="w-full py-2.5 rounded-lg text-white font-medium text-sm transition-all hover:shadow-lg mt-2" style="background:linear-gradient(135deg,#10b981,#059669)">Adicionar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Investment Modal -->
+  <div id="investment-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-4" onclick="if(event.target===this)closeInvestmentModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 fade-in" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-lg">Novo Investimento</h3><button onclick="closeInvestmentModal()" class="p-1 rounded-lg hover:bg-slate-100"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="investment-form" class="grid gap-3" onsubmit="handleInvestmentSubmit(event)">
+        <div><label for="inv-f-name" class="text-sm font-medium text-slate-700">Nome do Ativo</label><input id="inv-f-name" type="text" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm" placeholder="Ex: Tesouro IPCA"></div>
+        <div><label for="inv-f-type" class="text-sm font-medium text-slate-700">Tipo</label>
+          <select id="inv-f-type" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm">
+            <option value="acoes">Ações</option><option value="renda-fixa">Renda Fixa</option><option value="cripto">Criptomoedas</option><option value="fii">FII</option><option value="outros">Outros</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label for="inv-f-applied" class="text-sm font-medium text-slate-700">Valor Aplicado (R$)</label><input id="inv-f-applied" type="number" step="0.01" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+          <div><label for="inv-f-current" class="text-sm font-medium text-slate-700">Valor Atual (R$)</label><input id="inv-f-current" type="number" step="0.01" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        </div>
+        <div><label for="inv-f-month" class="text-sm font-medium text-slate-700">Mês de Aplicação</label><input id="inv-f-month" type="month" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        <button type="submit" class="w-full py-2.5 rounded-lg text-white font-medium text-sm transition-all hover:shadow-lg mt-2" style="background:linear-gradient(135deg,#10b981,#059669)">Adicionar Investimento</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirm -->
+  <div id="delete-confirm" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-4" onclick="if(event.target===this)cancelDelete()">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm fade-in text-center">
+      <i data-lucide="alert-triangle" class="w-10 h-10 mx-auto text-red-500 mb-3"></i>
+      <p class="font-semibold text-slate-800 mb-1">Excluir item?</p>
+      <p class="text-sm text-slate-500 mb-4">Esta ação não pode ser desfeita.</p>
+      <div class="flex gap-2"><button onclick="cancelDelete()" class="flex-1 py-2 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50">Cancelar</button><button id="confirm-delete-btn" onclick="confirmDelete()" class="flex-1 py-2 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600">Excluir</button></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="fin-toast" class="fixed bottom-6 right-6 z-50 hidden"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

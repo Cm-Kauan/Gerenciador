@@ -49,7 +49,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/health", "/h2-console/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**", "/api/health", "/h2-console/**",
+                                // TODO (próxima fase): o dashboard ainda não envia o token JWT nas
+                                // chamadas. Enquanto isso não é conectado, essas rotas ficam públicas
+                                // para não travar o front-end existente. Depois de integrar o login,
+                                // remover essas rotas do permitAll e trocar por autenticação real.
+                                "/api/tasks/**", "/api/finance/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers.frameOptions(frame -> frame.disable())) // necessario para o H2 console em dev

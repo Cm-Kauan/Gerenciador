@@ -24,8 +24,19 @@ planejada para depois que os fundamentos estiverem sólidos.
 ```
 Gerenciador/
 ├── backend/     # API Spring Boot
-└── frontend/    # site estático (HTML/CSS/JS)
+└── frontend/    # dashboard estático (HTML/CSS via Tailwind CDN/JS)
 ```
+
+> **Nota sobre o estado atual do projeto:** o frontend já evoluiu rápido e hoje
+> é um dashboard funcional (Tarefas, Agenda, Workspaces, Metas, Finanças) que
+> consome a API diretamente — mas **ainda sem estar conectado à autenticação**.
+> O backend de login (`/api/auth/**` e `/api/me`) já existe e funciona de forma
+> isolada; as rotas de dados (`/api/tasks/**`, `/api/finance/**`) estão
+> **públicas de propósito** por enquanto, para não travar o dashboard enquanto
+> a integração não é feita. Isso está registrado no roadmap abaixo como
+> próximo passo — enquanto isso não acontece, não use este projeto com dados
+> reais/sensíveis, pois qualquer pessoa com a URL pode ler ou alterar as
+> tarefas e lançamentos financeiros.
 
 ## Como rodar localmente
 
@@ -70,27 +81,24 @@ curl -X POST http://localhost:8080/api/auth/register \
 curl http://localhost:8080/api/me -H "Authorization: Bearer <TOKEN>"
 ```
 
-Qualquer outra rota (fora `/api/auth/**`, `/api/health` e `/h2-console/**`) exige
-o header `Authorization: Bearer <token>` — é assim que as próximas fases (tarefas,
-workspaces etc.) vão saber de qual usuário se trata.
+Por enquanto, `/api/tasks/**` e `/api/finance/**` estão liberadas em
+`SecurityConfig.java` (veja o comentário `TODO` lá) para o dashboard atual
+funcionar sem travar. Só `/api/me` (e qualquer rota nova que não for
+explicitamente liberada) exige o header `Authorization: Bearer <token>`.
 
 ### Frontend
 
-É um site estático simples. Basta servir a pasta `frontend/` com qualquer
-servidor HTTP local, por exemplo:
+É um site estático (HTML + Tailwind via CDN + JavaScript puro). Basta servir a
+pasta `frontend/` com qualquer servidor HTTP local, por exemplo:
 
 ```bash
 cd frontend
 python3 -m http.server 5500
 ```
 
-Depois abra `http://localhost:5500` no navegador e clique em
-"Testar conexão com o backend" — se aparecer o JSON de status, front e back
-estão se comunicando corretamente (e o CORS está configurado certo).
-
-Na mesma página agora tem abas de **Entrar** / **Criar conta**: crie uma conta,
-depois clique em "Consultar /api/me" para ver o token JWT sendo usado de fato
-para acessar uma rota protegida.
+Depois abra `http://localhost:5500` no navegador — o dashboard carrega as
+tarefas e dados financeiros diretamente da API (`js/api.js` centraliza essas
+chamadas, `js/app.js` tem toda a lógica de tela).
 
 > Se você usar outra porta ou o Live Server do VS Code, a URL de origem já está
 > liberada no `CorsConfig.java` (`http://localhost:*`).
@@ -98,11 +106,13 @@ para acessar uma rota protegida.
 ## Roadmap de fases
 
 - [x] **Fase 0 — Fundação**: esqueleto do projeto, backend e frontend conversando via API, infraestrutura documentada
-- [x] **Fase 1 — Autenticação**: cadastro/login de usuários (Spring Security + JWT)
-- [ ] **Fase 2 — CRUD de Tarefas**: criação, edição, conclusão, exclusão, subtarefas e prioridade (Alta/Média/Baixa)
-- [ ] **Fase 3 — Workspaces e Tags**: alternância Pessoal/Profissional e etiquetas personalizadas
-- [ ] **Fase 4 — Agenda e Calendário**: visão "Hoje / Esta Semana / Atrasados" e calendário interativo
-- [ ] **Fase 5 — Notificações e Dashboard**: lembretes (push + resumo diário por e-mail) e métricas de produtividade
+- [x] **Fase 1 — Autenticação**: cadastro/login de usuários (Spring Security + JWT) — implementada e testada, mas **ainda isolada** do resto do app (ver nota abaixo)
+- [x] **Fase 2 — CRUD de Tarefas**: criação, edição, conclusão, exclusão, subtarefas e prioridade (Alta/Média/Baixa) — implementado no dashboard (`/api/tasks`), mas sem estar vinculado a um usuário
+- [x] **Fase 3 — Workspaces e Tags**: alternância Pessoal/Profissional e etiquetas personalizadas — implementado no dashboard
+- [x] **Fase 4 — Agenda e Calendário**: visão de calendário interativo — implementado no dashboard
+- [ ] **Fase 4.1 — Conectar autenticação ao dashboard**: fazer o `app.js`/`api.js` enviarem o token JWT em toda chamada, associar cada `Task`/`Transaction`/`Investment` ao usuário logado (campo `user_id`), proteger `/api/tasks/**` e `/api/finance/**` (remover do `permitAll` do `SecurityConfig`), e adicionar as telas de login/cadastro no dashboard
+- [ ] **Fase 5 — Notificações e Métricas**: lembretes (push + resumo diário por e-mail) e métricas de produtividade no dashboard
+- [ ] **Extra (fora do escopo original do PDF)**: módulo de Finanças/Investimentos já começou a ser implementado (`/api/finance/**`) — vale decidirmos juntos se ele continua fazendo parte do MVP ou fica para depois
 
 ## Guia de deploy
 
@@ -134,6 +144,6 @@ plataformas), mas seguem documentados aqui para quando chegar a hora.
 
 ### 3. Conectar os dois
 
-1. Em `frontend/js/app.js`, troque `API_BASE_URL` pela URL pública do Railway
+1. Em `frontend/js/api.js`, troque `API_BASE_URL` pela URL pública do Railway
 2. Em `backend/src/main/java/com/tasksync/backend/config/CorsConfig.java`, confirme que o padrão `https://*.vercel.app` cobre a URL gerada (se a Vercel usar um domínio customizado depois, adicione aqui)
 3. Faça commit e push das duas alterações — Railway e Vercel re-deployam automaticamente a cada push na branch configurada
