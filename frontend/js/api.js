@@ -1,5 +1,8 @@
-// Troque esta URL pela URL pública do backend depois do deploy no Railway.
-const API_BASE_URL = "http://localhost:8080";
+// Em localhost usa o backend local; em qualquer outro lugar (Vercel, etc.)
+// usa o backend publicado no Railway.
+const API_BASE_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+    ? "http://localhost:8080"
+    : "https://gerenciador-production-ea96.up.railway.app";
 
 async function request(path, options) {
     const response = await fetch(`${API_BASE_URL}${path}`, {

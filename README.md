@@ -132,7 +132,8 @@ plataformas), mas seguem documentados aqui para quando chegar a hora.
 
    > Não use a variável `DATABASE_URL` que o Railway gera automaticamente no serviço Postgres — ela vem no formato `postgres://usuario:senha@host:porta/banco`, e o driver JDBC do Spring Boot exige o formato `jdbc:postgresql://host:porta/banco`. Por isso criamos `JDBC_DATABASE_URL` como uma variável própria, já no formato certo.
 6. Ainda nas "Variables" do backend, crie também `JWT_SECRET` com uma string aleatória em base64 — gere a sua localmente com `openssl rand -base64 32` e cole o resultado. Essa chave assina os tokens JWT; nunca reutilize a chave de desenvolvimento (`application-dev.properties`) em produção.
-7. O Railway vai expor uma URL pública tipo `https://tasksync-backend.up.railway.app` — guarde essa URL
+7. O Railway vai expor uma URL pública — no nosso caso é
+   `https://gerenciador-production-ea96.up.railway.app`
 
 ### 2. Frontend na Vercel
 
@@ -144,6 +145,10 @@ plataformas), mas seguem documentados aqui para quando chegar a hora.
 
 ### 3. Conectar os dois
 
-1. Em `frontend/js/api.js`, troque `API_BASE_URL` pela URL pública do Railway
-2. Em `backend/src/main/java/com/tasksync/backend/config/CorsConfig.java`, confirme que o padrão `https://*.vercel.app` cobre a URL gerada (se a Vercel usar um domínio customizado depois, adicione aqui)
-3. Faça commit e push das duas alterações — Railway e Vercel re-deployam automaticamente a cada push na branch configurada
+`frontend/js/api.js` já detecta o ambiente automaticamente: em `localhost` usa
+o backend local, em qualquer outro domínio (Vercel) usa a URL do Railway
+acima. `backend/.../config/CorsConfig.java` já libera qualquer subdomínio
+`https://*.vercel.app`. Ou seja, depois do passo 1 (Vercel), normalmente não
+é preciso alterar código nenhum — só confirmar que a URL do Railway em
+`api.js` continua correta se você recriar o serviço no Railway algum dia (a
+URL muda nesse caso).
