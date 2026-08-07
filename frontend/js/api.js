@@ -28,8 +28,10 @@ const api = {
     fetchTransactions: () => request("/api/finance/transactions"),
     createTransaction: (transaction) =>
         request("/api/finance/transactions", { method: "POST", body: JSON.stringify(transaction) }),
+    deleteTransaction: (id) => request(`/api/finance/transactions/${id}`, { method: "DELETE" }),
 
     fetchInvestments: () => request("/api/finance/investments"),
     createInvestment: (investment) =>
         request("/api/finance/investments", { method: "POST", body: JSON.stringify(investment) }),
+    deleteInvestment: (id) => request(`/api/finance/investments/${id}`, { method: "DELETE" }),
 };

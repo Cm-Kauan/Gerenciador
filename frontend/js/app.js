@@ -5,6 +5,7 @@ let searchQuery = '';
 let priorityFilter = null;
 let tagFilter = null;
 let deleteTarget = null;
+let deleteTargetType = 'task';
 let calDate = new Date();
 let calSelected = new Date().toISOString().split('T')[0];
 const today = new Date().toISOString().split('T')[0];
@@ -266,13 +267,25 @@ async function handleSubmit(e) {
 
 function editTask(id) { const task = allTasks.find(t => t.id === id); if (task) openModal(task); }
 async function toggleComplete(id) { const task = allTasks.find(t => t.id === id); if (task) { await api.updateTask({ ...task, completed: !task.completed }); await loadTasks(); } }
-function promptDelete(id) { deleteTarget = id; const d = document.getElementById('delete-confirm'); d.classList.remove('hidden'); d.classList.add('flex'); lucide.createIcons(); }
+function promptDelete(id, type = 'task') { deleteTarget = id; deleteTargetType = type; const d = document.getElementById('delete-confirm'); d.classList.remove('hidden'); d.classList.add('flex'); lucide.createIcons(); }
 function cancelDelete() { deleteTarget = null; const d = document.getElementById('delete-confirm'); d.classList.add('hidden'); d.classList.remove('flex'); }
 async function confirmDelete() {
   if (!deleteTarget) return;
   const btn = document.getElementById('confirm-delete-btn'); btn.disabled = true;
-  await api.deleteTask(deleteTarget);
-  await loadTasks();
+  if (deleteTargetType === 'transaction') {
+    await api.deleteTransaction(deleteTarget);
+    await loadFinanceData();
+    renderTransactions();
+    renderFinCharts();
+  } else if (deleteTargetType === 'investment') {
+    await api.deleteInvestment(deleteTarget);
+    await loadFinanceData();
+    renderInvestmentTable();
+    renderInvestmentCharts();
+  } else {
+    await api.deleteTask(deleteTarget);
+    await loadTasks();
+  }
   btn.disabled = false; cancelDelete();
 }
 function parseSubtasks(str) { try { return JSON.parse(str || '[]'); } catch { return []; } }
@@ -421,7 +434,10 @@ function renderTransactions() {
         <p class="text-xs text-slate-400">${typeLabels[t.type]} • ${paymentLabels[t.payment] || t.payment} • ${t.category}</p>
       </div>
     </div>
-    <p class="text-sm font-semibold ${typeColors[t.type]}">${t.type === 'entrada' ? '+' : '-'}R$ ${t.amount.toLocaleString('pt-BR')}</p>
+    <div class="flex items-center gap-2">
+      <p class="text-sm font-semibold ${typeColors[t.type]}">${t.type === 'entrada' ? '+' : '-'}R$ ${t.amount.toLocaleString('pt-BR')}</p>
+      <button onclick="promptDelete(${t.id}, 'transaction')" class="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+    </div>
   </div>`).join('');
   lucide.createIcons();
 }
@@ -551,9 +567,11 @@ function renderInvestmentTable() {
       <td class="text-right px-3 py-2.5 font-semibold ${gain >= 0 ? 'text-emerald-600' : 'text-red-600'}">${gain >= 0 ? '+' : ''}${gainPct}%</td>
       <td class="text-center px-3 py-2.5 text-slate-600 text-xs">${inv.month}</td>
       <td class="text-center px-3 py-2.5"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${status}</span></td>
+      <td class="text-center px-3 py-2.5"><button onclick="promptDelete(${inv.id}, 'investment')" class="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
     </tr>`;
   }).join('');
   updateInvestmentSummary();
+  lucide.createIcons();
 }
 
 function updateInvestmentSummary() {
