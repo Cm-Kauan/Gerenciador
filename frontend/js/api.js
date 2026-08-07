@@ -12,8 +12,11 @@ async function request(path, options) {
     if (!response.ok) {
         throw new Error(`Erro ${response.status} ao chamar ${path}`);
     }
-    if (response.status === 204) return null;
-    return response.json();
+    // DELETE (e algumas outras respostas) podem vir com corpo vazio mesmo em
+    // status 200 - response.json() quebra nesse caso, então checamos o texto
+    // bruto antes de tentar interpretar como JSON.
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
 }
 
 const api = {
