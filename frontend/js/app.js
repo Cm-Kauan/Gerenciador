@@ -1,5 +1,4 @@
 let allTasks = [];
-let currentWorkspace = 'pessoal';
 let currentView = 'tarefas';
 let searchQuery = '';
 let priorityFilter = null;
@@ -10,19 +9,6 @@ let calDate = new Date();
 let calSelected = new Date().toISOString().split('T')[0];
 const today = new Date().toISOString().split('T')[0];
 
-const mockProjects = [
-  { name: 'Redesign App Mobile', status: 'Em Andamento', progress: 65, color: '#6366f1' },
-  { name: 'API v2 - Integração', status: 'Planejamento', progress: 20, color: '#3b82f6' },
-  { name: 'Campanha Q3 Marketing', status: 'Em Andamento', progress: 45, color: '#8b5cf6' }
-];
-const mockTeam = [
-  { name: 'Ana L.', role: 'Design', color: '#ec4899' },
-  { name: 'Carlos M.', role: 'Backend', color: '#3b82f6' },
-  { name: 'Julia S.', role: 'Frontend', color: '#8b5cf6' },
-  { name: 'Pedro R.', role: 'PM', color: '#f59e0b' },
-  { name: 'Maria F.', role: 'QA', color: '#22c55e' }
-];
-
 (async () => {
   await loadTasks();
   lucide.createIcons();
@@ -30,17 +16,11 @@ const mockTeam = [
   await loadFinanceData();
   renderFinCharts();
   renderTransactions();
+  await loadProfissionalData();
 })();
 
 async function loadTasks() {
   allTasks = await api.fetchTasks();
-  render();
-}
-
-function setWorkspace(ws) {
-  currentWorkspace = ws;
-  document.getElementById('ws-pessoal').classList.toggle('active', ws === 'pessoal');
-  document.getElementById('ws-profissional').classList.toggle('active', ws === 'profissional');
   render();
 }
 
@@ -63,7 +43,6 @@ function getTasks() { return allTasks.filter(t => (!t.type || t.type === 'task')
 function getGoals() { return allTasks.filter(t => t.type === 'goal'); }
 function getFiltered() {
   return getTasks().filter(t => {
-    if (t.workspace !== currentWorkspace) return false;
     if (searchQuery && !t.title.toLowerCase().includes(searchQuery)) return false;
     if (priorityFilter && t.priority !== priorityFilter) return false;
     if (tagFilter && !(t.tags || '').includes(tagFilter)) return false;
@@ -121,7 +100,7 @@ function renderCalendar() {
   document.getElementById('cal-month-label').textContent = monthNames[month] + ' ' + year;
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const wsTasks = getTasks().filter(t => t.workspace === currentWorkspace && t.due_date);
+  const wsTasks = getTasks().filter(t => t.due_date);
   const tasksByDate = {};
   wsTasks.forEach(t => { if (!tasksByDate[t.due_date]) tasksByDate[t.due_date] = []; tasksByDate[t.due_date].push(t); });
   let html = '';
@@ -139,23 +118,122 @@ function renderCalendar() {
 
 function selectCalDay(d) { calSelected = d; renderCalendar(); }
 function renderCalDayTasks() {
-  const wsTasks = getTasks().filter(t => t.workspace === currentWorkspace && t.due_date === calSelected);
+  const wsTasks = getTasks().filter(t => t.due_date === calSelected);
   const container = document.getElementById('cal-day-tasks');
   if (!wsTasks.length) { container.innerHTML = `<p class="text-sm text-slate-400 text-center py-4">Nenhuma tarefa para ${formatDate(calSelected)}.</p>`; return; }
   container.innerHTML = `<p class="text-xs font-semibold text-slate-500 mb-2">${formatDate(calSelected)}</p>` + wsTasks.map(t => taskCard(t)).join('');
   lucide.createIcons();
 }
 
+// ===== PROFISSIONAL: EQUIPE E PROJETOS =====
+let team = [];
+let projects = [];
+
+async function loadProfissionalData() {
+  team = await api.fetchTeam();
+  projects = await api.fetchProjects();
+}
+
+const projectStatusColors = { 'Planejamento': '#3b82f6', 'Em Andamento': '#6366f1', 'Concluído': '#22c55e' };
+const teamColors = ['#ec4899', '#3b82f6', '#8b5cf6', '#f59e0b', '#22c55e', '#ef4444', '#06b6d4'];
+
 function renderProfissional() {
-  document.getElementById('pro-project-list').innerHTML = mockProjects.map(p => `<div class="pro-card rounded-xl p-4"><div class="flex items-center justify-between mb-2"><p class="text-sm font-semibold text-slate-800">${p.name}</p><span class="text-xs px-2 py-0.5 rounded-full" style="background:${p.color}20;color:${p.color}">${p.status}</span></div><div class="w-full bg-slate-200 rounded-full h-2 mt-2"><div class="h-2 rounded-full goal-progress" style="width:${p.progress}%;background:${p.color}"></div></div><p class="text-xs text-slate-400 mt-1">${p.progress}% concluído</p></div>`).join('');
-  document.getElementById('pro-team-list').innerHTML = mockTeam.map(m => `<div class="flex items-center gap-2 pro-card rounded-lg px-3 py-2"><div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background:${m.color}">${m.name.charAt(0)}</div><div><p class="text-sm font-medium text-slate-800">${m.name}</p><p class="text-xs text-slate-400">${m.role}</p></div></div>`).join('');
-  const proTasks = getTasks().filter(t => t.workspace === 'profissional');
-  const proContainer = document.getElementById('pro-tasks');
-  proContainer.innerHTML = proTasks.length ? proTasks.slice(0, 5).map(t => taskCard(t)).join('') : '<p class="text-sm text-slate-400 text-center py-4">Nenhuma tarefa profissional.</p>';
-  const done = proTasks.filter(t => t.completed).length;
-  document.getElementById('pro-completed').textContent = done;
-  document.getElementById('pro-deadlines').textContent = proTasks.filter(t => !t.completed && t.due_date).length;
+  document.getElementById('pro-projects').textContent = projects.length;
+  document.getElementById('pro-active').textContent = projects.filter(p => p.status === 'Em Andamento').length;
+  document.getElementById('pro-completed').textContent = projects.filter(p => p.status === 'Concluído').length;
+  document.getElementById('pro-team').textContent = team.length;
+
+  const projectList = document.getElementById('pro-project-list');
+  const projectEmpty = document.getElementById('pro-project-empty');
+  if (!projects.length) {
+    projectList.innerHTML = '';
+    projectEmpty.classList.remove('hidden');
+  } else {
+    projectEmpty.classList.add('hidden');
+    const color = (status) => projectStatusColors[status] || '#64748b';
+    projectList.innerHTML = projects.map(p => `<div class="pro-card rounded-xl p-4">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-sm font-semibold text-slate-800">${p.name}</p>
+        <button onclick="promptDelete(${p.id}, 'project')" class="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+      </div>
+      <select onchange="updateProjectStatus(${p.id}, this.value)" class="text-xs px-2 py-1 rounded-full border-0 mb-2" style="background:${color(p.status)}20;color:${color(p.status)}">
+        <option value="Planejamento" ${p.status === 'Planejamento' ? 'selected' : ''}>Planejamento</option>
+        <option value="Em Andamento" ${p.status === 'Em Andamento' ? 'selected' : ''}>Em Andamento</option>
+        <option value="Concluído" ${p.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
+      </select>
+      <div class="w-full bg-slate-200 rounded-full h-2 mt-1"><div class="h-2 rounded-full goal-progress" style="width:${p.progress}%;background:${color(p.status)}"></div></div>
+      <div class="flex items-center justify-between mt-2">
+        <p class="text-xs text-slate-400">${p.progress}% concluído</p>
+        <div class="flex gap-1">
+          <button onclick="updateProjectProgress(${p.id}, -10)" class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 text-sm font-bold">−</button>
+          <button onclick="updateProjectProgress(${p.id}, 10)" class="w-6 h-6 rounded bg-indigo-100 hover:bg-indigo-200 flex items-center justify-center text-indigo-700 text-sm font-bold">+</button>
+        </div>
+      </div>
+    </div>`).join('');
+  }
+
+  const teamList = document.getElementById('pro-team-list');
+  const teamEmpty = document.getElementById('pro-team-empty');
+  if (!team.length) {
+    teamList.innerHTML = '';
+    teamEmpty.classList.remove('hidden');
+  } else {
+    teamEmpty.classList.add('hidden');
+    teamList.innerHTML = team.map((m, i) => `<div class="flex items-center gap-2 pro-card rounded-lg px-3 py-2">
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background:${teamColors[i % teamColors.length]}">${m.name.charAt(0).toUpperCase()}</div>
+      <div><p class="text-sm font-medium text-slate-800">${m.name}</p><p class="text-xs text-slate-400">${m.role || ''}</p></div>
+      <button onclick="promptDelete(${m.id}, 'team')" class="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 ml-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+    </div>`).join('');
+  }
   lucide.createIcons();
+}
+
+function openProjectModal() { const m = document.getElementById('project-modal'); m.classList.remove('hidden'); m.classList.add('flex'); lucide.createIcons(); }
+function closeProjectModal() { const m = document.getElementById('project-modal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+async function handleProjectSubmit(e) {
+  e.preventDefault();
+  await api.createProject({
+    name: document.getElementById('proj-name').value.trim(),
+    status: document.getElementById('proj-status').value,
+    progress: parseInt(document.getElementById('proj-progress').value) || 0
+  });
+  document.getElementById('project-form').reset();
+  closeProjectModal();
+  await loadProfissionalData();
+  renderProfissional();
+}
+
+async function updateProjectProgress(id, delta) {
+  const project = projects.find(p => p.id === id);
+  if (!project) return;
+  const next = Math.max(0, Math.min(100, (project.progress || 0) + delta));
+  await api.updateProject({ ...project, progress: next });
+  await loadProfissionalData();
+  renderProfissional();
+}
+
+async function updateProjectStatus(id, status) {
+  const project = projects.find(p => p.id === id);
+  if (!project) return;
+  await api.updateProject({ ...project, status });
+  await loadProfissionalData();
+  renderProfissional();
+}
+
+function openTeamModal() { const m = document.getElementById('team-modal'); m.classList.remove('hidden'); m.classList.add('flex'); lucide.createIcons(); }
+function closeTeamModal() { const m = document.getElementById('team-modal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+async function handleTeamSubmit(e) {
+  e.preventDefault();
+  await api.createTeamMember({
+    name: document.getElementById('team-name').value.trim(),
+    role: document.getElementById('team-role').value.trim()
+  });
+  document.getElementById('team-form').reset();
+  closeTeamModal();
+  await loadProfissionalData();
+  renderProfissional();
 }
 
 function renderGoals() {
@@ -188,7 +266,6 @@ async function handleGoalSubmit(e) {
     title: document.getElementById('g-title').value.trim(),
     description: '',
     priority: 'media',
-    workspace: currentWorkspace,
     tags: document.getElementById('g-tags').value.trim(),
     due_date: null,
     completed: false,
@@ -204,7 +281,7 @@ async function handleGoalSubmit(e) {
 }
 
 function renderDashboard() {
-  const wsTasks = getTasks().filter(t => t.workspace === currentWorkspace);
+  const wsTasks = getTasks();
   const total = wsTasks.length, done = wsTasks.filter(t => t.completed).length, pending = total - done;
   const overdue = wsTasks.filter(t => !t.completed && t.due_date && t.due_date < today).length;
   document.getElementById('metric-total').textContent = total;
@@ -217,7 +294,7 @@ function renderDashboard() {
 }
 
 function renderTagFilters() {
-  const wsTasks = getTasks().filter(t => t.workspace === currentWorkspace);
+  const wsTasks = getTasks();
   const tags = new Set();
   wsTasks.forEach(t => (t.tags || '').split(',').filter(Boolean).forEach(tg => tags.add(tg.trim())));
   document.getElementById('tag-filters').innerHTML = [...tags].map(tg => `<button onclick="toggleTagFilter('${tg}')" class="tag-pill ${tagFilter === tg ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-600'} hover:opacity-80 transition-all">${tg}</button>`).join('');
@@ -257,7 +334,7 @@ async function handleSubmit(e) {
       if (existing) await api.updateTask({ ...existing, title, description, priority, due_date, tags, subtasks });
     } else {
       if (allTasks.length >= 999) { btn.disabled = false; btn.textContent = 'Criar Tarefa'; return; }
-      await api.createTask({ title, description, priority, workspace: currentWorkspace, tags, due_date, completed: false, subtasks, created_at: new Date().toISOString(), type: 'task', goal_target: 0, goal_current: 0 });
+      await api.createTask({ title, description, priority, tags, due_date, completed: false, subtasks, created_at: new Date().toISOString(), type: 'task', goal_target: 0, goal_current: 0 });
     }
     await loadTasks();
   } finally {
@@ -282,6 +359,14 @@ async function confirmDelete() {
     await loadFinanceData();
     renderInvestmentTable();
     renderInvestmentCharts();
+  } else if (deleteTargetType === 'project') {
+    await api.deleteProject(deleteTarget);
+    await loadProfissionalData();
+    renderProfissional();
+  } else if (deleteTargetType === 'team') {
+    await api.deleteTeamMember(deleteTarget);
+    await loadProfissionalData();
+    renderProfissional();
   } else {
     await api.deleteTask(deleteTarget);
     await loadTasks();
@@ -289,6 +374,14 @@ async function confirmDelete() {
   btn.disabled = false; cancelDelete();
 }
 function parseSubtasks(str) { try { return JSON.parse(str || '[]'); } catch { return []; } }
+
+// Aceita tanto "150,50" quanto "150.50" quanto "1.500,50" (formato BR com milhar).
+function parseMoney(str) {
+  let s = (str || '').trim();
+  if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (s.includes(',')) s = s.replace(',', '.');
+  return parseFloat(s);
+}
 function formatDate(d) { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}`; }
 
 // ===== FINANÇAS MODULE =====
@@ -447,26 +540,36 @@ function closeFinModal() { const m = document.getElementById('fin-modal'); m.cla
 
 async function handleFinSubmit(e) {
   e.preventDefault();
-  await api.createTransaction({
-    desc: document.getElementById('fin-f-desc').value.trim(),
-    amount: parseFloat(document.getElementById('fin-f-amount').value),
-    type: document.getElementById('fin-f-type').value,
-    payment: document.getElementById('fin-f-payment').value,
-    month: document.getElementById('fin-f-month').value || new Date().toISOString().slice(0, 7),
-    category: document.getElementById('fin-f-category').value.trim() || 'Outros'
-  });
-  document.getElementById('fin-form').reset();
-  closeFinModal();
-  await loadFinanceData();
-  renderTransactions();
-  renderFinCharts();
+  const amount = parseMoney(document.getElementById('fin-f-amount').value);
+  if (isNaN(amount)) { alert('Valor inválido. Use um número, ex: 150,50'); return; }
+  const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true;
+  try {
+    await api.createTransaction({
+      desc: document.getElementById('fin-f-desc').value.trim(),
+      amount,
+      type: document.getElementById('fin-f-type').value,
+      payment: document.getElementById('fin-f-payment').value,
+      month: document.getElementById('fin-f-month').value || new Date().toISOString().slice(0, 7),
+      category: document.getElementById('fin-f-category').value.trim() || 'Outros'
+    });
+    document.getElementById('fin-form').reset();
+    closeFinModal();
+    await loadFinanceData();
+    renderTransactions();
+    renderFinCharts();
+  } catch (err) {
+    alert('Não foi possível salvar o lançamento: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function generateInstallments(e) {
   e.preventDefault();
   const desc = document.getElementById('inst-desc').value.trim();
-  const total = parseFloat(document.getElementById('inst-total').value);
+  const total = parseMoney(document.getElementById('inst-total').value);
   const parcelas = parseInt(document.getElementById('inst-parcelas').value);
+  if (isNaN(total) || isNaN(parcelas)) { alert('Valores inválidos. Confira o valor total e o número de parcelas.'); return; }
   const perMonth = Math.round((total / parcelas) * 100) / 100;
   const now = new Date();
   finInstallments = [];
@@ -594,17 +697,26 @@ function closeInvestmentModal() { const m = document.getElementById('investment-
 
 async function handleInvestmentSubmit(e) {
   e.preventDefault();
-  await api.createInvestment({
-    name: document.getElementById('inv-f-name').value.trim(),
-    type: document.getElementById('inv-f-type').value,
-    applied: parseFloat(document.getElementById('inv-f-applied').value),
-    current: parseFloat(document.getElementById('inv-f-current').value),
-    month: document.getElementById('inv-f-month').value || new Date().toISOString().slice(0, 7)
-  });
-  document.getElementById('investment-form').reset();
-  closeInvestmentModal();
-  await loadFinanceData();
-  renderInvestmentTable();
-  renderInvestmentCharts();
-  lucide.createIcons();
+  const applied = parseMoney(document.getElementById('inv-f-applied').value);
+  const current = parseMoney(document.getElementById('inv-f-current').value);
+  if (isNaN(applied) || isNaN(current)) { alert('Valor inválido. Use um número, ex: 1000,00'); return; }
+  const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true;
+  try {
+    await api.createInvestment({
+      name: document.getElementById('inv-f-name').value.trim(),
+      type: document.getElementById('inv-f-type').value,
+      applied,
+      current,
+      month: document.getElementById('inv-f-month').value || new Date().toISOString().slice(0, 7)
+    });
+    document.getElementById('investment-form').reset();
+    closeInvestmentModal();
+    await loadFinanceData();
+    renderInvestmentTable();
+    renderInvestmentCharts();
+  } catch (err) {
+    alert('Não foi possível salvar o investimento: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
 }

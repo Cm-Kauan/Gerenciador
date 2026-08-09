@@ -34,4 +34,13 @@ const api = {
     createInvestment: (investment) =>
         request("/api/finance/investments", { method: "POST", body: JSON.stringify(investment) }),
     deleteInvestment: (id) => request(`/api/finance/investments/${id}`, { method: "DELETE" }),
+
+    fetchProjects: () => request("/api/projects"),
+    createProject: (project) => request("/api/projects", { method: "POST", body: JSON.stringify(project) }),
+    updateProject: (project) => request(`/api/projects/${project.id}`, { method: "PUT", body: JSON.stringify(project) }),
+    deleteProject: (id) => request(`/api/projects/${id}`, { method: "DELETE" }),
+
+    fetchTeam: () => request("/api/team"),
+    createTeamMember: (member) => request("/api/team", { method: "POST", body: JSON.stringify(member) }),
+    deleteTeamMember: (id) => request(`/api/team/${id}`, { method: "DELETE" }),
 };

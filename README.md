@@ -1,8 +1,8 @@
 # TaskSync
 
-Plataforma web de gestão de tarefas, tempo e metas — unindo a rotina pessoal e o
-ambiente profissional em um único lugar, através de **Workspaces** isolados
-(Pessoal / Profissional).
+Plataforma web de gestão de tarefas, tempo, finanças e projetos — unindo a rotina
+pessoal e o ambiente profissional (com gestão de equipe e projetos) em um único
+lugar.
 
 Este é um projeto de estudo (curso de ADS) construído em fases, com o backend em
 Java e o frontend em HTML/CSS/JS puro por enquanto — a migração para React está
@@ -28,15 +28,16 @@ Gerenciador/
 ```
 
 > **Nota sobre o estado atual do projeto:** o frontend já evoluiu rápido e hoje
-> é um dashboard funcional (Tarefas, Agenda, Workspaces, Metas, Finanças) que
-> consome a API diretamente — mas **ainda sem estar conectado à autenticação**.
-> O backend de login (`/api/auth/**` e `/api/me`) já existe e funciona de forma
-> isolada; as rotas de dados (`/api/tasks/**`, `/api/finance/**`) estão
-> **públicas de propósito** por enquanto, para não travar o dashboard enquanto
-> a integração não é feita. Isso está registrado no roadmap abaixo como
-> próximo passo — enquanto isso não acontece, não use este projeto com dados
-> reais/sensíveis, pois qualquer pessoa com a URL pode ler ou alterar as
-> tarefas e lançamentos financeiros.
+> é um dashboard funcional (Tarefas, Agenda, Profissional com Equipe/Projetos,
+> Metas, Finanças) que consome a API diretamente — mas **ainda sem estar
+> conectado à autenticação**. O backend de login (`/api/auth/**` e `/api/me`)
+> já existe e funciona de forma isolada; as rotas de dados (`/api/tasks/**`,
+> `/api/finance/**`, `/api/projects/**`, `/api/team/**`) estão **públicas de
+> propósito** por enquanto, para não travar o dashboard enquanto a integração
+> não é feita. Isso está registrado no roadmap abaixo como próximo passo —
+> enquanto isso não acontece, não use este projeto com dados reais/sensíveis,
+> pois qualquer pessoa com a URL pode ler ou alterar as tarefas, lançamentos
+> financeiros, projetos e equipe.
 
 ## Como rodar localmente
 
@@ -81,10 +82,11 @@ curl -X POST http://localhost:8080/api/auth/register \
 curl http://localhost:8080/api/me -H "Authorization: Bearer <TOKEN>"
 ```
 
-Por enquanto, `/api/tasks/**` e `/api/finance/**` estão liberadas em
-`SecurityConfig.java` (veja o comentário `TODO` lá) para o dashboard atual
-funcionar sem travar. Só `/api/me` (e qualquer rota nova que não for
-explicitamente liberada) exige o header `Authorization: Bearer <token>`.
+Por enquanto, `/api/tasks/**`, `/api/finance/**`, `/api/projects/**` e
+`/api/team/**` estão liberadas em `SecurityConfig.java` (veja o comentário
+`TODO` lá) para o dashboard atual funcionar sem travar. Só `/api/me` (e
+qualquer rota nova que não for explicitamente liberada) exige o header
+`Authorization: Bearer <token>`.
 
 ### Frontend
 
@@ -108,11 +110,12 @@ chamadas, `js/app.js` tem toda a lógica de tela).
 - [x] **Fase 0 — Fundação**: esqueleto do projeto, backend e frontend conversando via API, infraestrutura documentada
 - [x] **Fase 1 — Autenticação**: cadastro/login de usuários (Spring Security + JWT) — implementada e testada, mas **ainda isolada** do resto do app (ver nota abaixo)
 - [x] **Fase 2 — CRUD de Tarefas**: criação, edição, conclusão, exclusão, subtarefas e prioridade (Alta/Média/Baixa) — implementado no dashboard (`/api/tasks`), mas sem estar vinculado a um usuário
-- [x] **Fase 3 — Workspaces e Tags**: alternância Pessoal/Profissional e etiquetas personalizadas — implementado no dashboard
+- [x] **Fase 3 — Tags**: etiquetas personalizadas nas tarefas — implementado no dashboard (o conceito de Workspaces Pessoal/Profissional foi removido: a aba "Profissional" já cumpre esse papel, agora com gestão real de equipe e projetos)
 - [x] **Fase 4 — Agenda e Calendário**: visão de calendário interativo — implementado no dashboard
-- [ ] **Fase 4.1 — Conectar autenticação ao dashboard**: fazer o `app.js`/`api.js` enviarem o token JWT em toda chamada, associar cada `Task`/`Transaction`/`Investment` ao usuário logado (campo `user_id`), proteger `/api/tasks/**` e `/api/finance/**` (remover do `permitAll` do `SecurityConfig`), e adicionar as telas de login/cadastro no dashboard
+- [x] **Fase 4.1 — Profissional (Equipe e Projetos)**: CRUD de membros de equipe (`/api/team`) e projetos (`/api/projects`, com status e % de progresso editáveis) — implementado no dashboard
+- [ ] **Fase 4.2 — Conectar autenticação ao dashboard**: fazer o `app.js`/`api.js` enviarem o token JWT em toda chamada, associar cada `Task`/`Transaction`/`Investment`/`Project`/`TeamMember` ao usuário logado (campo `user_id`), proteger as rotas de dados (remover do `permitAll` do `SecurityConfig`), e adicionar as telas de login/cadastro no dashboard
 - [ ] **Fase 5 — Notificações e Métricas**: lembretes (push + resumo diário por e-mail) e métricas de produtividade no dashboard
-- [ ] **Extra (fora do escopo original do PDF)**: módulo de Finanças/Investimentos já começou a ser implementado (`/api/finance/**`) — vale decidirmos juntos se ele continua fazendo parte do MVP ou fica para depois
+- [ ] **Extra (fora do escopo original do PDF)**: módulos de Finanças/Investimentos e Profissional/Equipe já foram implementados além do MVP original — vale decidirmos juntos se continuam fazendo parte do escopo principal
 
 ## Guia de deploy
 

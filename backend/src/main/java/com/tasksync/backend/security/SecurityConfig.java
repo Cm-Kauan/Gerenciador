@@ -63,7 +63,7 @@ public class SecurityConfig {
                                 // chamadas. Enquanto isso não é conectado, essas rotas ficam públicas
                                 // para não travar o front-end existente. Depois de integrar o login,
                                 // remover essas rotas do permitAll e trocar por autenticação real.
-                                "/api/tasks/**", "/api/finance/**"
+                                "/api/tasks/**", "/api/finance/**", "/api/projects/**", "/api/team/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -29,8 +29,6 @@ public class Task {
 
     private String priority;
 
-    private String workspace;
-
     private String tags;
 
     private LocalDate dueDate;
@@ -81,14 +79,6 @@ public class Task {
 
     public void setPriority(String priority) {
         this.priority = priority;
-    }
-
-    public String getWorkspace() {
-        return workspace;
-    }
-
-    public void setWorkspace(String workspace) {
-        this.workspace = workspace;
     }
 
     public String getTags() {
