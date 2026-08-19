@@ -59,6 +59,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**", "/api/health", "/h2-console/**",
+                                // /error precisa ficar liberado: quando um controller lança uma
+                                // exceção (ex.: erro de SQL), o Spring Boot encaminha internamente
+                                // para /error antes de responder. Se essa rota não estiver liberada,
+                                // o Spring Security bloqueia esse encaminhamento com 403, escondendo
+                                // o erro real (500) atrás de um 403 enganoso.
+                                "/error",
                                 // TODO (próxima fase): o dashboard ainda não envia o token JWT nas
                                 // chamadas. Enquanto isso não é conectado, essas rotas ficam públicas
                                 // para não travar o front-end existente. Depois de integrar o login,

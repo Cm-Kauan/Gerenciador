@@ -15,8 +15,11 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // "desc" e palavra reservada no PostgreSQL (usada em ORDER BY ... DESC) e
+    // causa erro de sintaxe se usada como nome de coluna sem aspas. Por isso o
+    // campo se chama "description" em vez de "desc".
     @Column(nullable = false)
-    private String desc;
+    private String description;
 
     @Column(nullable = false)
     private BigDecimal amount;
@@ -44,12 +47,12 @@ public class Transaction {
         this.id = id;
     }
 
-    public String getDesc() {
-        return desc;
+    public String getDescription() {
+        return description;
     }
 
-    public void setDesc(String desc) {
-        this.desc = desc;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public BigDecimal getAmount() {

@@ -523,7 +523,7 @@ function renderTransactions() {
         <i data-lucide="${t.type === 'entrada' ? 'trending-up' : t.type === 'cartao' ? 'credit-card' : 'trending-down'}" class="w-4 h-4 ${typeColors[t.type]}"></i>
       </div>
       <div>
-        <p class="text-sm font-medium text-slate-800">${t.desc}</p>
+        <p class="text-sm font-medium text-slate-800">${t.description}</p>
         <p class="text-xs text-slate-400">${typeLabels[t.type]} • ${paymentLabels[t.payment] || t.payment} • ${t.category}</p>
       </div>
     </div>
@@ -545,7 +545,7 @@ async function handleFinSubmit(e) {
   const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true;
   try {
     await api.createTransaction({
-      desc: document.getElementById('fin-f-desc').value.trim(),
+      description: document.getElementById('fin-f-desc').value.trim(),
       amount,
       type: document.getElementById('fin-f-type').value,
       payment: document.getElementById('fin-f-payment').value,
