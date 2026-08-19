@@ -25,10 +25,10 @@ const api = {
     updateTask: (task) => request(`/api/tasks/${task.id}`, { method: "PUT", body: JSON.stringify(task) }),
     deleteTask: (id) => request(`/api/tasks/${id}`, { method: "DELETE" }),
 
-    fetchTransactions: () => request("/api/finance/transactions"),
+    fetchTransactions: () => request("/api/finance/lancamentos"),
     createTransaction: (transaction) =>
-        request("/api/finance/transactions", { method: "POST", body: JSON.stringify(transaction) }),
-    deleteTransaction: (id) => request(`/api/finance/transactions/${id}`, { method: "DELETE" }),
+        request("/api/finance/lancamentos", { method: "POST", body: JSON.stringify(transaction) }),
+    deleteTransaction: (id) => request(`/api/finance/lancamentos/${id}`, { method: "DELETE" }),
 
     fetchInvestments: () => request("/api/finance/investments"),
     createInvestment: (investment) =>

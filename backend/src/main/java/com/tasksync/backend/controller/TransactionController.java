@@ -15,7 +15,7 @@ import com.tasksync.backend.model.Transaction;
 import com.tasksync.backend.repository.TransactionRepository;
 
 @RestController
-@RequestMapping("/api/finance/transactions")
+@RequestMapping("/api/finance/lancamentos")
 public class TransactionController {
 
     private final TransactionRepository transactionRepository;
