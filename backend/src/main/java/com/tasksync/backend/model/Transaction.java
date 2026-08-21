@@ -2,6 +2,8 @@ package com.tasksync.backend.model;
 
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -17,7 +19,10 @@ public class Transaction {
 
     // "desc" e palavra reservada no PostgreSQL (usada em ORDER BY ... DESC) e
     // causa erro de sintaxe se usada como nome de coluna sem aspas. Por isso o
-    // campo se chama "description" em vez de "desc".
+    // campo se chama "description" em vez de "desc". @JsonAlias aceita o nome
+    // antigo "desc" também na entrada, caso algum cliente ainda mande esse
+    // formato (ex.: cache de frontend desatualizado).
+    @JsonAlias("desc")
     @Column(nullable = false)
     private String description;
 
