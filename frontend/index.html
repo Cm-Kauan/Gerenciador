@@ -42,10 +42,70 @@
     .fin-toast { animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards; }
     @keyframes toastIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
     @keyframes toastOut { from{opacity:1} to{opacity:0} }
+    .auth-tab.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+    .channel-btn.active { border-color: #6366f1; background: rgba(99,102,241,0.08); }
+    .channel-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body class="w-full min-h-screen" style="background: linear-gradient(135deg, rgb(240, 244, 255), rgb(232, 236, 248));">
-  <div class="flex flex-col h-screen" style="height: calc(100 * min(var(--vh, 1vh), 1vh))">
+
+  <!-- Auth Screen -->
+  <div id="auth-screen" class="min-h-screen items-center justify-center p-4" style="display:flex">
+    <div class="glass rounded-2xl shadow-2xl w-full max-w-md p-6 md:p-8 fade-in">
+      <h1 class="font-bold text-2xl text-center mb-1" style="color: rgb(30, 41, 59);">TaskSync</h1>
+      <p class="text-sm text-slate-500 text-center mb-6">Gestão de tarefas, finanças e projetos</p>
+
+      <!-- Login / Cadastro tabs -->
+      <div id="auth-tabs" class="flex gap-2 mb-5">
+        <button class="auth-tab active flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 transition-all" onclick="setAuthTab('login')">Entrar</button>
+        <button class="auth-tab flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 transition-all" onclick="setAuthTab('register')">Criar conta</button>
+      </div>
+
+      <!-- Login form -->
+      <form id="login-form" class="grid gap-3" onsubmit="handleLogin(event)">
+        <div><label for="login-email" class="text-sm font-medium text-slate-700">E-mail</label><input id="login-email" type="email" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        <div><label for="login-password" class="text-sm font-medium text-slate-700">Senha</label><input id="login-password" type="password" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        <button type="submit" class="w-full py-2.5 rounded-lg text-white font-medium text-sm transition-all hover:shadow-lg mt-2" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">Entrar</button>
+      </form>
+
+      <!-- Register form -->
+      <form id="register-form" class="grid gap-3 hidden" onsubmit="handleRegister(event)">
+        <div><label for="reg-name" class="text-sm font-medium text-slate-700">Nome</label><input id="reg-name" type="text" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        <div><label for="reg-email" class="text-sm font-medium text-slate-700">E-mail</label><input id="reg-email" type="email" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        <div><label for="reg-password" class="text-sm font-medium text-slate-700">Senha (mínimo 6 caracteres)</label><input id="reg-password" type="password" minlength="6" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        <div><label for="reg-phone" class="text-sm font-medium text-slate-700">Telefone</label><input id="reg-phone" type="tel" required placeholder="(11) 99999-8888" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"></div>
+        <button type="submit" class="w-full py-2.5 rounded-lg text-white font-medium text-sm transition-all hover:shadow-lg mt-2" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">Criar conta</button>
+      </form>
+
+      <!-- Verification: choose channel -->
+      <div id="verify-channel-step" class="hidden">
+        <p class="text-sm text-slate-600 mb-4">Conta criada! Como você quer receber o código de verificação?</p>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <button id="channel-email-btn" onclick="requestVerificationCode('email')" class="channel-btn border-2 border-slate-200 rounded-xl p-4 text-center transition-all hover:border-indigo-300">
+            <i data-lucide="mail" class="w-5 h-5 mx-auto mb-1 text-indigo-600"></i>
+            <p class="text-sm font-medium text-slate-700">E-mail</p>
+          </button>
+          <button disabled title="Em breve" class="channel-btn border-2 border-slate-200 rounded-xl p-4 text-center">
+            <i data-lucide="message-square" class="w-5 h-5 mx-auto mb-1 text-slate-400"></i>
+            <p class="text-sm font-medium text-slate-400">SMS (em breve)</p>
+          </button>
+        </div>
+        <p id="verify-channel-msg" class="text-xs text-center text-slate-500"></p>
+      </div>
+
+      <!-- Verification: enter code -->
+      <form id="verify-code-form" class="grid gap-3 hidden" onsubmit="handleVerifyCode(event)">
+        <p class="text-sm text-slate-600">Digite o código de 6 dígitos que enviamos para o seu e-mail:</p>
+        <input id="verify-code-input" type="text" inputmode="numeric" maxlength="6" required placeholder="000000" class="w-full mt-1 px-3 py-3 rounded-lg border border-slate-200 text-center text-lg tracking-widest font-semibold">
+        <button type="submit" class="w-full py-2.5 rounded-lg text-white font-medium text-sm transition-all hover:shadow-lg" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">Verificar</button>
+        <button type="button" onclick="showVerifyChannelStep()" class="text-xs text-slate-400 hover:text-slate-600">Escolher outro canal / reenviar código</button>
+      </form>
+
+      <p id="auth-error" class="text-sm text-red-500 text-center mt-4 hidden"></p>
+    </div>
+  </div>
+
+  <div id="app-shell" class="flex-col h-screen" style="display:none; height: calc(100 * min(var(--vh, 1vh), 1vh))">
     <header class="w-full px-4 md:px-6 py-3 glass border-b border-white/20 flex items-center justify-between gap-3 z-30 relative" style="background: rgba(255, 255, 255, 0.72);">
       <div class="flex items-center gap-3">
         <h1 class="font-bold text-xl tracking-tight" style="color: rgb(30, 41, 59);">TaskSync</h1>
@@ -58,6 +118,8 @@
         <button onclick="openModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-all hover:shadow-lg" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
           <i data-lucide="plus" class="w-4 h-4"></i><span class="hidden sm:inline">Nova Tarefa</span>
         </button>
+        <span id="logged-user-name" class="hidden sm:inline text-sm text-slate-500"></span>
+        <button onclick="logout()" title="Sair" class="p-2 rounded-lg hover:bg-slate-100"><i data-lucide="log-out" class="w-4 h-4 text-slate-500"></i></button>
       </div>
     </header>
     <div class="flex flex-1 overflow-hidden">
@@ -417,7 +479,7 @@
   <!-- Toast -->
   <div id="fin-toast" class="fixed bottom-6 right-6 z-50 hidden"></div>
 
-  <script src="js/api.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/api.js?v=5"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>

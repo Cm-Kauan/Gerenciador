@@ -9,7 +9,125 @@ let calDate = new Date();
 let calSelected = new Date().toISOString().split('T')[0];
 const today = new Date().toISOString().split('T')[0];
 
-(async () => {
+// ===== AUTENTICAÇÃO =====
+let pendingVerificationEmail = null;
+
+function isLoggedIn() {
+  return !!localStorage.getItem(TOKEN_KEY);
+}
+
+function showAuthError(message) {
+  const el = document.getElementById('auth-error');
+  el.textContent = message;
+  el.classList.toggle('hidden', !message);
+}
+
+function setAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((btn, i) => btn.classList.toggle('active', (tab === 'login') === (i === 0)));
+  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+  document.getElementById('verify-channel-step').classList.add('hidden');
+  document.getElementById('verify-code-form').classList.add('hidden');
+  document.getElementById('auth-tabs').classList.remove('hidden');
+  showAuthError('');
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  showAuthError('');
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  try {
+    const data = await api.login({ email, password });
+    saveSession(data);
+    await initDashboard();
+  } catch (err) {
+    if (err.message.includes('não verificada')) {
+      pendingVerificationEmail = email;
+      showVerifyChannelStep();
+      showAuthError('Conta ainda não verificada. Escolha como quer receber o código abaixo.');
+    } else {
+      showAuthError(err.message);
+    }
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  showAuthError('');
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const phone = document.getElementById('reg-phone').value.trim();
+  try {
+    await api.register({ name, email, password, phone });
+    pendingVerificationEmail = email;
+    showVerifyChannelStep();
+  } catch (err) {
+    showAuthError(err.message);
+  }
+}
+
+function showVerifyChannelStep() {
+  document.getElementById('auth-tabs').classList.add('hidden');
+  document.getElementById('login-form').classList.add('hidden');
+  document.getElementById('register-form').classList.add('hidden');
+  document.getElementById('verify-code-form').classList.add('hidden');
+  document.getElementById('verify-channel-step').classList.remove('hidden');
+  document.getElementById('verify-channel-msg').textContent = '';
+  lucide.createIcons();
+}
+
+async function requestVerificationCode(method) {
+  showAuthError('');
+  const msgEl = document.getElementById('verify-channel-msg');
+  try {
+    const res = await api.sendVerificationCode({ email: pendingVerificationEmail, method });
+    msgEl.textContent = res.message || 'Código enviado.';
+    document.getElementById('verify-channel-step').classList.add('hidden');
+    document.getElementById('verify-code-form').classList.remove('hidden');
+  } catch (err) {
+    msgEl.textContent = err.message;
+  }
+}
+
+async function handleVerifyCode(e) {
+  e.preventDefault();
+  showAuthError('');
+  const code = document.getElementById('verify-code-input').value.trim();
+  try {
+    const data = await api.verifyCode({ email: pendingVerificationEmail, code });
+    saveSession(data);
+    await initDashboard();
+  } catch (err) {
+    showAuthError(err.message);
+  }
+}
+
+function saveSession(authResponse) {
+  localStorage.setItem(TOKEN_KEY, authResponse.token);
+  localStorage.setItem(USER_KEY, JSON.stringify({ name: authResponse.name, email: authResponse.email }));
+}
+
+function logout() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  document.getElementById('app-shell').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('login-form').reset();
+  document.getElementById('register-form').reset();
+  setAuthTab('login');
+}
+
+async function initDashboard() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'flex';
+  const raw = localStorage.getItem(USER_KEY);
+  if (raw) {
+    const user = JSON.parse(raw);
+    const nameEl = document.getElementById('logged-user-name');
+    if (nameEl) nameEl.textContent = user.name;
+  }
   await loadTasks();
   lucide.createIcons();
   renderCalHeader();
@@ -17,6 +135,13 @@ const today = new Date().toISOString().split('T')[0];
   renderFinCharts();
   renderTransactions();
   await loadProfissionalData();
+}
+
+(() => {
+  lucide.createIcons();
+  if (isLoggedIn()) {
+    initDashboard();
+  }
 })();
 
 async function loadTasks() {

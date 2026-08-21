@@ -4,13 +4,18 @@ const API_BASE_URL = ["localhost", "127.0.0.1"].includes(window.location.hostnam
     ? "http://localhost:8080"
     : "https://gerenciador-production-ea96.up.railway.app";
 
-async function request(path, options) {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-        headers: { "Content-Type": "application/json" },
-        ...options,
-    });
+const TOKEN_KEY = "tasksync_token";
+const USER_KEY = "tasksync_user";
+
+async function request(path, options = {}) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
     if (!response.ok) {
-        throw new Error(`Erro ${response.status} ao chamar ${path}`);
+        const text = await response.text().catch(() => "");
+        throw new Error(text || `Erro ${response.status} ao chamar ${path}`);
     }
     // DELETE (e algumas outras respostas) podem vir com corpo vazio mesmo em
     // status 200 - response.json() quebra nesse caso, então checamos o texto
@@ -20,6 +25,11 @@ async function request(path, options) {
 }
 
 const api = {
+    register: (data) => request("/api/auth/register", { method: "POST", body: JSON.stringify(data) }),
+    login: (data) => request("/api/auth/login", { method: "POST", body: JSON.stringify(data) }),
+    sendVerificationCode: (data) => request("/api/auth/send-verification-code", { method: "POST", body: JSON.stringify(data) }),
+    verifyCode: (data) => request("/api/auth/verify-code", { method: "POST", body: JSON.stringify(data) }),
+
     fetchTasks: () => request("/api/tasks"),
     createTask: (task) => request("/api/tasks", { method: "POST", body: JSON.stringify(task) }),
     updateTask: (task) => request(`/api/tasks/${task.id}`, { method: "PUT", body: JSON.stringify(task) }),

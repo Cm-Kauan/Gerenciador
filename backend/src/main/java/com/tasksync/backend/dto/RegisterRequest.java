@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 public record RegisterRequest(
         @NotBlank String name,
         @NotBlank @Email String email,
-        @NotBlank @Size(min = 6, message = "A senha deve ter pelo menos 6 caracteres") String password
+        @NotBlank @Size(min = 6, message = "A senha deve ter pelo menos 6 caracteres") String password,
+        @NotBlank String phone
 ) {
 }
